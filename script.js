@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetRosterBtn = document.getElementById('reset-roster-btn');
     const sortFilter = document.getElementById('sort-filter');
     const columnSwitcher = document.getElementById('column-switcher');
-    const rivalryListContainer = document.getElementById('rivalry-list'); // New selector
+    const rivalryListContainer = document.getElementById('rivalry-list');
 
     // --- State Variables ---
     let budget = 4000000;
@@ -54,17 +54,47 @@ document.addEventListener('DOMContentLoaded', () => {
     columnSwitcher.addEventListener('click', handleColumnSwitch);
 
     // --- Column Switcher Logic ---
-    function setupColumnSwitcher() { const s = localStorage.getItem('wweDraftGridCols') || '2'; setGridColumns(s); }
-    function handleColumnSwitch(e) { if (e.target.tagName === 'BUTTON') { const n = e.target.dataset.columns; setGridColumns(n); localStorage.setItem('wweDraftGridCols', n); } }
-    function setGridColumns(n) { superstarListContainer.classList.remove('grid-cols-1', 'grid-cols-2', 'grid-cols-3'); superstarListContainer.classList.add(`grid-cols-${n}`); const b = columnSwitcher.querySelectorAll('button'); b.forEach(B => { B.classList.toggle('active', B.dataset.columns === n); }); }
+    function setupColumnSwitcher() {
+        const savedCols = localStorage.getItem('wweDraftGridCols') || '2';
+        setGridColumns(savedCols);
+    }
+
+    function handleColumnSwitch(e) {
+        if (e.target.tagName === 'BUTTON') {
+            const numCols = e.target.dataset.columns;
+            setGridColumns(numCols);
+            localStorage.setItem('wweDraftGridCols', numCols);
+        }
+    }
+
+    function setGridColumns(numCols) {
+        superstarListContainer.classList.remove('grid-cols-1', 'grid-cols-2', 'grid-cols-3');
+        superstarListContainer.classList.add(`grid-cols-${numCols}`);
+        const buttons = columnSwitcher.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.columns === numCols);
+        });
+    }
 
     // --- State Management (Save/Load) ---
-    function saveState() { const s = { budget: budget, draftedRosterNames: draftedRoster.map(i => i.name) }; localStorage.setItem('wweDraftState', JSON.stringify(s)); }
-    function loadState() { const s = localStorage.getItem('wweDraftState'); if (s) { const S = JSON.parse(s); budget = S.budget; draftedRoster = S.draftedRosterNames.map(n => allSuperstars.find(i => i.name === n)).filter(Boolean); } updateAllDisplays(); }
+    function saveState() {
+        const state = { budget: budget, draftedRosterNames: draftedRoster.map(s => s.name) };
+        localStorage.setItem('wweDraftState', JSON.stringify(state));
+    }
+
+    function loadState() {
+        const savedState = localStorage.getItem('wweDraftState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            budget = state.budget;
+            draftedRoster = state.draftedRosterNames.map(name => allSuperstars.find(s => s.name === name)).filter(Boolean);
+        }
+        updateAllDisplays();
+    }
 
     // --- Core Interaction Functions ---
-    function handleDraftClick(e) { if (e.target.classList.contains('draft-button')) { const n = e.target.dataset.name; const s = allSuperstars.find(i => i.name === n); if (s && budget >= s.cost) { budget -= s.cost; draftedRoster.push(s); updateAllDisplays(); } } }
-    function handleRemoveClick(e) { if (e.target.classList.contains('remove-superstar-btn')) { const n = e.target.dataset.name; const i = draftedRoster.findIndex(s => s.name === n); if (i > -1) { const s = draftedRoster[i]; budget += s.cost; draftedRoster.splice(i, 1); updateAllDisplays(); applyFiltersAndSort(); } } }
+    function handleDraftClick(e) { if (e.target.classList.contains('draft-button')) { const sName = e.target.dataset.name; const s = allSuperstars.find(i => i.name === sName); if (s && budget >= s.cost) { budget -= s.cost; draftedRoster.push(s); updateAllDisplays(); } } }
+    function handleRemoveClick(e) { if (e.target.classList.contains('remove-superstar-btn')) { const sName = e.target.dataset.name; const sIndex = draftedRoster.findIndex(s => s.name === sName); if (sIndex > -1) { const s = draftedRoster[sIndex]; budget += s.cost; draftedRoster.splice(sIndex, 1); updateAllDisplays(); applyFiltersAndSort(); } } }
     function resetRoster() { if (!confirm('Are you sure you want to reset your entire roster? This will clear your saved progress.')) return; budget = 4000000; draftedRoster = []; updateAllDisplays(); applyFiltersAndSort(); }
 
     // --- Display & Filtering ---
@@ -76,45 +106,47 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateAddFilterButtonState() { addFilterBtn.disabled = dynamicFilterContainer.children.length >= MAX_FILTERS; }
 
     // --- UI Update Functions ---
-    function updateAllDisplays() { updateBudget(); updateDraftedRoster(); updateDraftButtons(); updateBreakdownCounters(); checkSynergy(); updateRivalryAnalysis(); /* New function call */ saveState(); }
+    function updateAllDisplays() { updateBudget(); updateDraftedRoster(); updateDraftButtons(); updateBreakdownCounters(); checkSynergy(); updateRivalryAnalysis(); saveState(); }
     function updateDraftedRoster() { draftedListContainer.innerHTML = ''; draftedRoster.forEach(s => { const l = document.createElement('li'); l.innerHTML = `<span>${s.name}</span><button class="remove-superstar-btn" data-name="${s.name}" title="Remove Superstar">×</button>`; draftedListContainer.appendChild(l); }); totalDraftedCount.textContent = draftedRoster.length; }
     function updateBudget() { budgetDisplay.textContent = `$${budget.toLocaleString()}`; budgetDisplay.style.color = budget < 0 ? '#D32F2F' : '#4CAF50'; }
     function updateDraftButtons() { const b = document.querySelectorAll('.draft-button'); b.forEach(B => { const n = B.dataset.name; const s = allSuperstars.find(i => i.name === n); const d = draftedRoster.some(i => i.name === n); B.disabled = d || s.cost > budget; }); }
     function updateBreakdownCounters() { const c = { male: { total: 0 }, female: { total: 0 } }; ['male', 'female'].forEach(g => { classes.forEach(cl => { c[g][cl] = { Face: 0, Heel: 0 }; }); }); draftedRoster.forEach(s => { const g = s.gender.toLowerCase(); const sC = s.class; const sR = s.role; c[g].total++; if (classes.includes(sC) && (sR === 'Face' || sR === 'Heel')) { c[g][sC][sR]++; } }); document.getElementById('male-total-count').textContent = c.male.total; document.getElementById('female-total-count').textContent = c.female.total; ['male', 'female'].forEach(g => { classes.forEach(cl => { const sC = cl.toLowerCase(); document.getElementById(`${g}-${sC}-face`).textContent = c[g][cl].Face; document.getElementById(`${g}-${sC}-heel`).textContent = c[g][cl].Heel; }); }); }
     function checkSynergy() { const s = document.getElementById('synergy-bonus'); s.innerHTML = ''; const t = {}; draftedRoster.forEach(i => { if (i.team) t[i.team] = (t[i.team] || 0) + 1; }); let h = false; for (const T in t) { if (t[T] > 1) { if (!h) { s.innerHTML = '<h3>Synergy Bonuses</h3><ul id="synergy-list"></ul>'; h = true; } const l = s.querySelector('#synergy-list'); const i = document.createElement('li'); i.textContent = `${T} (${t[T]} members)`; l.appendChild(i); } } }
-
-    // --- START: New Live Rivalry Analysis Function ---
+    
     function updateRivalryAnalysis() {
         const rivalries = findPotentialRivalries();
-        rivalryListContainer.innerHTML = ''; // Clear previous content
-
+        rivalryListContainer.innerHTML = '';
         if (rivalries.ideal.length === 0 && rivalries.specialist.length === 0) {
-            rivalryListContainer.innerHTML = `<p class="no-rivalries">No potential rivalries found.</p>`;
+            rivalryListContainer.innerHTML = `<p class="no-rivalries">Draft a Face and a Heel to see potential rivalries.</p>`;
             return;
         }
-
         if (rivalries.ideal.length > 0) {
             let idealHtml = '<h4>Ideal Matchups (High Ceiling)</h4><ul>';
-            rivalries.ideal.forEach(r => {
-                idealHtml += `<li>${r.s1.name} <span class="vs">vs</span> ${r.s2.name} <span class="type">[${r.type}]</span></li>`;
-            });
+            rivalries.ideal.forEach(r => { idealHtml += `<li>${r.s1.name} <span class="vs">vs</span> ${r.s2.name} <span class="type">[${r.type}]</span></li>`; });
             idealHtml += '</ul>';
             rivalryListContainer.innerHTML += idealHtml;
         }
-
         if (rivalries.specialist.length > 0) {
             let specialistHtml = '<h4>Specialist Matchups (High Floor)</h4><ul>';
-            rivalries.specialist.forEach(r => {
-                specialistHtml += `<li>${r.s1.name} <span class="vs">vs</span> ${r.s2.name} <span class="type">[${r.type}]</span></li>`;
-            });
+            rivalries.specialist.forEach(r => { specialistHtml += `<li>${r.s1.name} <span class="vs">vs</span> ${r.s2.name} <span class="type">[${r.type}]</span></li>`; });
             specialistHtml += '</ul>';
             rivalryListContainer.innerHTML += specialistHtml;
         }
     }
-    // --- END: New Live Rivalry Analysis Function ---
 
-    // --- Export Logic (reusing findPotentialRivalries) ---
+    // --- Export Logic ---
     function generateExport(format) { const t = draftedRoster.reduce((s, c) => s + c.cost, 0); const c = findCompletedTeams(); const r = findPotentialRivalries(); let sm = '', md = ''; sm += `ROSTER SUMMARY\n====================\n`; sm += `Total Superstars: ${draftedRoster.length}\nTotal Cost: $${t.toLocaleString()}\nBudget Remaining: $${budget.toLocaleString()}\n\n`; sm += `DRAFTED SUPERSTARS:\n`; draftedRoster.forEach(s => { sm += `- ${s.name} (${s.role} ${s.class})\n`; }); if (c.length > 0) { sm += `\nCOMPLETED TEAMS:\n`; c.forEach(t => { sm += `- ${t}\n`; }); } sm += `\nPOTENTIAL RIVALRIES:\n`; if (r.ideal.length > 0) { sm += `Ideal Matchups (High Ceiling):\n`; r.ideal.forEach(i => { sm += `- ${i.s1.name} vs. ${i.s2.name} [${i.type}]\n`; }); } if (r.specialist.length > 0) { sm += `Specialist Matchups (High Floor):\n`; r.specialist.forEach(i => { sm += `- ${i.s1.name} vs. ${i.s2.name} [${i.type}]\n`; }); } if (r.ideal.length === 0 && r.specialist.length === 0) { sm += `- No ideal rivalries found.\n`; } md += `# Roster Summary\n\n| Stat | Value |\n|:---|:---|\n`; md += `| Total Superstars | ${draftedRoster.length} |\n| Total Cost | $${t.toLocaleString()} |\n| Budget Remaining | $${budget.toLocaleString()} |\n\n## Drafted Superstars\n`; draftedRoster.forEach(s => { md += `* **${s.name}** (${s.role} ${s.class})\n`; }); if (c.length > 0) { md += `\n## Completed Teams\n`; c.forEach(t => { md += `* ${t}\n`; }); } md += `\n## Potential Rivalries\n`; if (r.ideal.length > 0) { md += `### Ideal Matchups (High Ceiling)\n`; r.ideal.forEach(i => { md += `* **${i.s1.name}** vs. **${i.s2.name}** _(${i.type})_\n`; }); } if (r.specialist.length > 0) { md += `### Specialist Matchups (High Floor)\n`; r.specialist.forEach(i => { md += `* **${i.s1.name}** vs. **${i.s2.name}** _(${i.type})_\n`; }); } if (r.ideal.length === 0 && r.specialist.length === 0) { md += `*No ideal rivalries found.*\n`; } if (format === 'clipboard') { navigator.clipboard.writeText(sm).then(() => alert('Roster summary copied!')); } else if (format === 'txt') { downloadFile('roster.txt', sm); } else if (format === 'md') { downloadFile('roster.md', md); } }
     function findCompletedTeams() { const d = {}; draftedRoster.forEach(s => { if (s.team) { if (!d[s.team]) d[s.team] = []; d[s.team].push(s.name); } }); const c = []; for (const t in d) { const T = allSuperstars.filter(s => s.team === t).length; if (d[t].length === T && T > 1) c.push(t); } return c; }
-    function findPotentialRivalries() { const r = { 'Fighter': 'Bruiser', 'Bruiser': 'Fighter', 'Cruiser': 'Giant', 'Giant': 'Cruiser' }; const p = { ideal: [], specialist: [] }; const f = draftedRoster.filter(s => s.role === 'Face'); const
+    function findPotentialRivalries() { const r = { 'Fighter': 'Bruiser', 'Bruiser': 'Fighter', 'Cruiser': 'Giant', 'Giant': 'Cruiser' }; const p = { ideal: [], specialist: [] }; const f = draftedRoster.filter(s => s.role === 'Face'); const h = draftedRoster.filter(s => s.role === 'Heel'); for (const a of f) { for (const b of h) { if (a.gender !== b.gender) continue; if (r[a.class] === b.class) { p.ideal.push({ s1: a, s2: b, type: `${a.class} vs. ${b.class}` }); } else if (a.class === 'Specialist' && b.class !== 'Specialist') { p.specialist.push({ s1: a, s2: b, type: `Specialist vs. ${b.class}` }); } else if (b.class === 'Specialist' && a.class !== 'Specialist') { p.specialist.push({ s1: a, s2: b, type: `${a.class} vs. Specialist` }); } } } return p; }
+    
+    function downloadFile(filename, content) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+});
 
