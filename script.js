@@ -143,12 +143,108 @@ document.addEventListener('DOMContentLoaded', () => {
         rosterBreakdownContainer.appendChild(femaleTracker);
     }
 
-    function checkSynergy() { const s = document.getElementById('synergy-bonus'); s.innerHTML = ''; const t = {}; draftedRoster.forEach(i => { if (i.team) t[i.team] = (t[i.team] || 0) + 1; }); let h = false; for (const T in t) { if (t[T] > 1) { if (!h) { s.innerHTML = '<h3>Synergy Bonuses</h3><ul id="synergy-list"></ul>'; h = true; } const l = s.querySelector('#synergy-list'); const i = document.createElement('li'); i.textContent = `${T} (${t[T]} members)`; l.appendChild(i); } } }
+    function checkSynergy() {
+        const s = document.getElementById('synergy-bonus');
+        s.innerHTML = '';
+        const t = {};
+        draftedRoster.forEach(i => {
+            if (i.team) t[i.team] = (t[i.team] || 0) + 1;
+        });
+        let h = false;
+        for (const T in t) {
+            if (t[T] > 1) {
+                if (!h) {
+                    s.innerHTML = '<h3>Synergy Bonuses</h3><ul id="synergy-list"></ul>';
+                    h = true;
+                }
+                const l = s.querySelector('#synergy-list');
+                const i = document.createElement('li');
+                i.textContent = `${T} (${t[T]} members)`;
+                l.appendChild(i);
+            }
+        }
+    }
     
-    function updateRivalryAnalysis() { const r = findPotentialRivalries(); rivalryListContainer.innerHTML = '<h3>Potential Rivalries</h3>'; if (r.ideal.length === 0 && r.specialist.length === 0) { rivalryListContainer.innerHTML += `<p class="no-rivalries">Draft a Face and a Heel to see potential rivalries.</p>`; return; } if (r.ideal.length > 0) { let h = '<h4>Ideal Matchups (High Ceiling)</h4><ul>'; r.ideal.forEach(i => { h += `<li>${i.s1.name} <span class="vs">vs</span> ${i.s2.name} <span class="type">[${i.type}]</span></li>`; }); h += '</ul>'; rivalryListContainer.innerHTML += h; } if (r.specialist.length > 0) { let h = '<h4>Specialist Matchups (High Floor)</h4><ul>'; r.specialist.forEach(i => { h += `<li>${i.s1.name} <span class="vs">vs</span> ${i.s2.name} <span class="type">[${i.type}]</span></li>`; }); h += '</ul>'; rivalryListContainer.innerHTML += h; } }
+    function updateRivalryAnalysis() {
+        const r = findPotentialRivalries();
+        rivalryListContainer.innerHTML = '<h3>Potential Rivalries</h3>';
+        if (r.ideal.length === 0 && r.specialist.length === 0) {
+            rivalryListContainer.innerHTML += `<p class="no-rivalries">Draft a Face and a Heel to see potential rivalries.</p>`;
+            return;
+        }
+        if (r.ideal.length > 0) {
+            let h = '<h4>Ideal Matchups (High Ceiling)</h4><ul>';
+            r.ideal.forEach(i => {
+                h += `<li>${i.s1.name} <span class="vs">vs</span> ${i.s2.name} <span class="type">[${i.type}]</span></li>`;
+            });
+            h += '</ul>';
+            rivalryListContainer.innerHTML += h;
+        }
+        if (r.specialist.length > 0) {
+            let h = '<h4>Specialist Matchups (High Floor)</h4><ul>';
+            r.specialist.forEach(i => {
+                h += `<li>${i.s1.name} <span class="vs">vs</span> ${i.s2.name} <span class="type">[${i.type}]</span></li>`;
+            });
+            h += '</ul>';
+            rivalryListContainer.innerHTML += h;
+        }
+    }
 
     // --- Export Logic ---
-    function generateExport(format) { const t = draftedRoster.reduce((s, c) => s + c.cost, 0); const c = findCompletedTeams(); const r = findPotentialRivalries(); let sm = '', md = ''; sm += `ROSTER SUMMARY\n====================\n`; sm += `Total Superstars: ${draftedRoster.length}\nTotal Cost: $${t.toLocaleString()}\nBudget Remaining: $${budget.toLocaleString()}\n\n`; sm += `DRAFTED SUPERSTARS:\n`; draftedRoster.forEach(s => { sm += `- ${s.name} (${s.role} ${s.class})\n`; }); if (c.length > 0) { sm += `\nCOMPLETED TEAMS:\n`; c.forEach(t => { sm += `- ${t}\n`; }); } sm += `\nPOTENTIAL RIVALRIES:\n`; if (r.ideal.length > 0) { sm += `Ideal Matchups (High Ceiling):\n`; r.ideal.forEach(i => { sm += `- ${i.s1.name} vs. ${i.s2.name} [${i.type}]\n`; }); } if (r.specialist.length > 0) { sm += `Specialist Matchups (High Floor):\n`; r.specialist.forEach(i => { sm += `- ${i.s1.name} vs. ${i.s2.name} [${i.type}]\n`; }); } if (r.ideal.length === 0 && r.specialist.length === 0) { sm += `- No ideal rivalries found.\n`; } md += `# Roster Summary\n\n| Stat | Value |\n|:---|:---|\n`; md += `| Total Superstars | ${draftedRoster.length} |\n| Total Cost | $${t.toLocaleString()} |\n| Budget Remaining | $${budget.toLocaleString()} |\n\n## Drafted Superstars\n`; draftedRoster.forEach(s => { md += `* **${s.name}** (${s.role} ${s.class})\n`; }); if (c.length > 0) { md += `\n## Completed Teams\n`; c.forEach(t => { md += `* ${t}\n`; }); } md += `\n## Potential Rivalries\n`; if (r.ideal.length > 0) { md += `### Ideal Matchups (High Ceiling)\n`; r.ideal.forEach(i => { md += `* **${i.s1.name}** vs. **${i.s2.name}** _(${i.type})_\n`; }); } if (r.specialist.length > 0) { md += `### Specialist Matchups (High Floor)\n`; r.specialist.forEach(i => { md += `* **${i.s1.name}** vs. **${i.s2.name}** _(${i.type})_\n`; }); } if (r.ideal.length === 0 && r.specialist.length === 0) { md += `*No ideal rivalries found.*\n`; } if (format === 'clipboard') { navigator.clipboard.writeText(sm).then(() => alert('Roster summary copied!'));
+    function generateExport(format) {
+        const t = draftedRoster.reduce((s, c) => s + c.cost, 0);
+        const c = findCompletedTeams();
+        const r = findPotentialRivalries();
+        let sm = '', md = '';
+        
+        sm += `ROSTER SUMMARY\n====================\n`;
+        sm += `Total Superstars: ${draftedRoster.length}\nTotal Cost: $${t.toLocaleString()}\nBudget Remaining: $${budget.toLocaleString()}\n\n`;
+        sm += `DRAFTED SUPERSTARS:\n`;
+        draftedRoster.forEach(s => { sm += `- ${s.name} (${s.role} ${s.class})\n`; });
+        
+        if (c.length > 0) {
+            sm += `\nCOMPLETED TEAMS:\n`;
+            c.forEach(t => { sm += `- ${t}\n`; });
+        }
+        
+        sm += `\nPOTENTIAL RIVALRIES:\n`;
+        if (r.ideal.length > 0) {
+            sm += `Ideal Matchups (High Ceiling):\n`;
+            r.ideal.forEach(i => { sm += `- ${i.s1.name} vs. ${i.s2.name} [${i.type}]\n`; });
+        }
+        if (r.specialist.length > 0) {
+            sm += `Specialist Matchups (High Floor):\n`;
+            r.specialist.forEach(i => { sm += `- ${i.s1.name} vs. ${i.s2.name} [${i.type}]\n`; });
+        }
+        if (r.ideal.length === 0 && r.specialist.length === 0) {
+            sm += `- No ideal rivalries found.\n`;
+        }
+        
+        md += `# Roster Summary\n\n| Stat | Value |\n|:---|:---|\n`;
+        md += `| Total Superstars | ${draftedRoster.length} |\n| Total Cost | $${t.toLocaleString()} |\n| Budget Remaining | $${budget.toLocaleString()} |\n\n`;
+        md += `## Drafted Superstars\n`;
+        draftedRoster.forEach(s => { md += `* **${s.name}** (${s.role} ${s.class})\n`; });
+        
+        if (c.length > 0) {
+            md += `\n## Completed Teams\n`;
+            c.forEach(t => { md += `* ${t}\n`; });
+        }
+        
+        md += `\n## Potential Rivalries\n`;
+        if (r.ideal.length > 0) {
+            md += `### Ideal Matchups (High Ceiling)\n`;
+            r.ideal.forEach(i => { md += `* **${i.s1.name}** vs. **${i.s2.name}** _(${i.type})_\n`; });
+        }
+        if (r.specialist.length > 0) {
+            md += `### Specialist Matchups (High Floor)\n`;
+            r.specialist.forEach(i => { md += `* **${i.s1.name}** vs. **${i.s2.name}** _(${i.type})_\n`; });
+        }
+        if (r.ideal.length === 0 && r.specialist.length === 0) {
+            md += `*No ideal rivalries found.*\n`;
+        }
+        
+        if (format === 'clipboard') {
+            navigator.clipboard.writeText(sm).then(() => alert('Roster summary copied!'));
         } else if (format === 'txt') {
             downloadFile('roster.txt', sm);
         } else if (format === 'md') {
@@ -203,5 +299,4 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(element);
     }
 });
-
 
