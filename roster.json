@@ -775,8 +775,7 @@
       "cost": 139000,
       "role": "Face",
       "gender": "Female",
-      "class":
-      "Cruiser",
+      "class": "Cruiser",
       "sta": 60,
       "pop": 44,
       "team": null
